@@ -6,16 +6,16 @@ all:
 
 install:
 	install -d $(DESTDIR)$(servicedir)
-	install -m 0755 set_version $(DESTDIR)$(servicedir)
-	install -m 0644 set_version.service $(DESTDIR)$(servicedir)
+	install -m 0755 modify_spec $(DESTDIR)$(servicedir)
+	install -m 0644 modify_spec.service $(DESTDIR)$(servicedir)
 
 test:
-	flake8 set_version tests/
+	flake8 modify_spec tests/
 	python -m unittest discover tests/
 
 clean:
 	find -name "*.pyc" -exec rm {} \;
 	find -name '*.pyo' -exec rm {} \;
-	rm -rf set_versionc
+	rm -rf modify_specc
 
 .PHONY: all install
