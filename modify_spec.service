@@ -1,0 +1,16 @@
+<service name="modify_spec">
+  <summary>Modifies spec and dsc files</summary>
+  <description>This service updates a spec file using regex and replace.
+Can be used after download_url or tar_scm service.
+</description>
+  <parameter name="replace">
+    <description>Set replacement string.</description>
+  </parameter>
+  <parameter name="file">
+    <description>Update only the given file.</description>
+  </parameter>
+  <parameter name="regex">
+    <description>This regex can be used find strings to replace in the spec, dsc or PKGBUILD files.</description>
+  </parameter>
+</service>
+

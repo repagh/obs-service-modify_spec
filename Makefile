@@ -18,4 +18,4 @@ clean:
 	find -name '*.pyo' -exec rm {} \;
 	rm -rf set_versionc
 
-.PHONY: all install test
+.PHONY: all install

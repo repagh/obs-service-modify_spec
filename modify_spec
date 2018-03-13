@@ -1,0 +1,116 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# A simple script to update version number in spec, dsc or arch linux files
+#
+# (C) 2010 by Adrian Schröter <adrian@suse.de>
+# (C) 2015 by Thomas Bechtold <tbechtold@suse.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# See http://www.gnu.org/licenses/gpl-2.0.html for full license text.
+
+from __future__ import print_function
+
+import argparse
+import glob
+import os
+import re
+import shutil
+import sys
+import tarfile
+import zipfile
+import codecs
+
+try:
+    from packaging.version import LegacyVersion, Version, parse
+except ImportError as exc:
+    HAS_PACKAGING = False
+    import warnings
+    warnings.warn("install 'packaging' to improve python package versions",
+                  RuntimeWarning)
+else:
+    HAS_PACKAGING = True
+
+
+DEBUG = False
+
+outdir = None
+suffixes = ('obscpio', 'tar', 'tar.gz', 'tgz', 'tar.bz2', 'tbz2', 'tar.xz',
+            'zip')
+suffixes_re = "|".join(map(lambda x: re.escape(x), suffixes))
+
+
+def _get_local_files():
+    """ sorted local file list by modification time (newest first)"""
+    files = glob.glob('*')
+    files.sort(key=lambda x: os.stat(os.path.join(os.getcwd(), x)).st_mtime,
+               reverse=True)
+    return files
+
+
+def _replace_stuff(filename, regex, replace):
+    # first, modify a copy of filename and then move it
+    with codecs.open(filename, 'r+', 'utf8') as f:
+        contents = f.read()
+        f.seek(0)
+        contents_new, subs = re.subn(regex, replace,
+                                     contents, flags=re.MULTILINE)
+        f.truncate()
+        f.write(contents_new)
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(
+        description='Open Build Service source service "modify_spec".'
+        'Used to update build description files using a regex and replace.')
+    parser.add_argument('--outdir', required=True,
+                        help='output directory for modified sources')
+    parser.add_argument('--replace', required=True,
+                        help='replacement string')
+    parser.add_argument('--file', action='append',
+                        help='modify only this build description. '
+                        'maybe used multiple times.')
+    parser.add_argument('--debug', default=False,
+                        help='Enable more verbose output.')
+    parser.add_argument('--regex', required=True,
+                        help='regex to be used on file')
+    args = vars(parser.parse_args())
+    outdir = args['outdir']
+    regex = args['regex']
+    replace = args['replace']
+    
+    if not outdir:
+        print("no outdir specified")
+        sys.exit(-1)
+
+    if args['debug']:
+        print("Running in debug mode")
+        DEBUG = True
+
+    files_local = _get_local_files()
+
+    # if no files explicitly specified process whole directory
+    files = args['file'] or files_local
+
+    # handle rpm specs
+    for f in filter(lambda x: x.endswith(".spec"), files):
+        filename = outdir + "/" + f
+        shutil.copyfile(f, filename)
+        _replace_stuff(filename, regex, replace)
+
+    for f in filter(lambda x: x.endswith(".dsc"), files):
+        filename = outdir + "/" + f
+        shutil.copyfile(f, filename)
+        _replace_stuff(filename, regex, replace)
+
+    # handle arch linux PKGBUILD files
+    # TODO: Handle the md5sums generation!
+    for f in filter(lambda x: x.endswith(("PKGBUILD")), files):
+        filename = outdir + "/" + f
+        shutil.copyfile(f, filename)
+        _replace_stuff(filename, regex, replace)
+        
